@@ -1,0 +1,67 @@
+version: '3'
+
+vars:
+  BINARY_NAME: sol-events
+  PROGRAM_ID: 6QSaTnP3biE27vP1gRFqmHr7hzpp3VRTdFnEonuMtgWw
+  POLLING_INTERVAL: 10s
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  build:
+    desc: Build the application
+    deps: [generate]
+    cmds:
+      - go build -o {{.BINARY_NAME}} main.go
+    sources:
+      - main.go
+      - go.mod
+      - go.sum
+      - generated/**/*.go
+
+  run:
+    desc: Run the application
+    deps: [build]
+    cmds:
+      - ./{{.BINARY_NAME}} --program {{.PROGRAM_ID}} --interval {{.POLLING_INTERVAL}}
+    silent: false
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -f {{.BINARY_NAME}}
+    silent: true
+
+  deps:
+    desc: Download dependencies
+    cmds:
+      - go mod download
+    sources:
+      - go.mod
+
+  tidy:
+    desc: Tidy up go.mod and go.sum
+    cmds:
+      - go mod tidy
+    sources:
+      - go.mod
+
+  generate:
+    desc: Generate code from IDL
+    cmds:
+      - go tool github.com/rmntim/solana-anchor-go -src=../customapp-event-listener/target/idl/event.json -pkg=idl -dst=./generated/idl
+    sources:
+      - ../customapp-event-listener/target/idl/event.json
+    generates:
+      - generated/idl/**/*.go
+
+  test:
+    desc: Run tests
+    deps: [generate]
+    cmds:
+      - go test ./... -v
+    sources:
+      - "**/*.go"
